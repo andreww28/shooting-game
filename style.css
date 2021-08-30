@@ -1,0 +1,58 @@
+*, *::before, *::after{
+    margin:0;
+}
+
+body{
+    background-color: #000;
+}
+
+.score-div{
+    margin: 1em 0 0 1em;
+    font-family:Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size: 1.4rem;
+    color: #fff;
+    letter-spacing: 1px;
+    user-select: none;
+    transform: scale(0);
+    position: fixed;
+}
+
+.ui-container, .main-container, .button-div{
+    display:flex;
+    align-items: center;
+    justify-content:center;
+}
+
+.main-container{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+}
+
+.ui-container{
+    width: 25em;
+    height:10em;
+    background-color:#fff;
+    flex-direction: column;
+    gap:0.5em;
+}
+
+.button-div{
+    width:100%;
+    height:20%;
+}
+
+#start-btn{
+    margin-top: 1em;
+    border:none;
+    border-radius:20px;
+    cursor: pointer;
+    outline:none;
+    background-color:rgb(49, 106, 172);
+    color: #fff;
+    font-size: 1.1rem;
+    width:80%;
+    padding: 0.5em 0.1em;
+}
