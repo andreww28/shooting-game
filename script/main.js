@@ -7,72 +7,15 @@ canvas.height = innerHeight;
 const scoreEl = document.querySelector("#scoreEl");
 const startBtn = document.querySelector('#start-btn');
 
-class Player {
-    constructor(x, y, radius, color) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-    }
+var player = new Player(canvas.width/2, canvas.height/2, 10, 'white', null);
+var projectiles = [];
+var enemies = [];
+var particles = [];
+var score = 0;
+var gameover = false;
 
-    draw(){
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-    }
-}
-
-
-class Projectile extends Player {
-    constructor(x, y, radius, color, velocity) {
-        super(x, y, radius, color);
-        this.velocity = velocity;
-    }
-
-    update() {
-        this.x = this.x + this.velocity.x;
-        this.y = this.y + this.velocity.y;
-    }
-}
-
-class Enemy extends Projectile {
-}
-
-
-class Particle extends Projectile {
-    friction = 0.99;
-
-    constructor(x, y, radius, color, velocity) {
-        super(x, y, radius, color, velocity);
-        this.alpha = 1;
-    }
-
-    draw(){
-        ctx.save();
-        ctx.globalAlpha = this.alpha;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.restore();
-    }
-
-    update() {
-        this.velocity.x *= this.friction;
-        this.velocity.y *= this.friction;
-
-        this.x = this.x + this.velocity.x;
-        this.y = this.y + this.velocity.y;
-        this.alpha -= 0.01;
-    }
-}
-
-let player = new Player(canvas.width/2, canvas.height/2, 10, 'white');
-let projectiles = [];
-let enemies = [];
-let particles = [];
-let score = 0;
+var spawn_enemies_interval;
+var animationId;
 
 function init(){
     player = new Player(canvas.width/2, canvas.height/2, 10, 'white');
@@ -83,33 +26,11 @@ function init(){
     scoreEl.textContent = 0;
 }
 
-function spawnEnemies() {
-    setInterval(() => {
-        const radius = Math.floor(Math.random() * 30 + 5);
-
-        let x;
-        let y;
-
-        if(Math.random() < 0.5){
-            x = (Math.random() < 0.5) ? 0 - radius : canvas.width + radius;
-            y = Math.random * canvas.height;
-        }else {
-            x = Math.random() * canvas.width;
-            y = (Math.random() < 0.5) ? 0 - radius : canvas.height + radius;
-        }
-        const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
-        
-        let angle = Math.atan2(player.y - y, player.x - x);
-        let velocity = {
-            x: Math.cos(angle),
-            y: Math.sin(angle)
-        }
-
-        enemies.push(new Enemy(x, y, radius, color, velocity));
-    }, 1000)
+function update_score(s){
+    score += s;
+    scoreEl.textContent = score;
+    gsap.fromTo(scoreEl, {opacity: 0} , {duration: 0.3, opacity:1});
 }
-
-let animationId;
 
 function animate(){
     animationId = requestAnimationFrame(animate);
@@ -117,7 +38,7 @@ function animate(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     player.draw();
 
-    particles.forEach((particle,index) => {
+    particles.forEach((particle,index) => {  //spawn or remove particle on canvas.
         if(particle.alpha <= 0){
             particles.splice(index,1);
         }else{
@@ -126,10 +47,12 @@ function animate(){
         }
     });
 
-    projectiles.forEach((projectile, index) => {
+
+    projectiles.forEach((projectile, index) => {    //shoot projectile on canvas.
         projectile.draw();
         projectile.update();
 
+        //remove the projectile if it's off the screen
         if(projectile.x + projectile.radius < 0 || projectile.x - projectile.radius > canvas.width ||
            projectile.y + projectile.radius < 0 || projectile.y - projectile.radius > canvas.height) {
             setTimeout(() => {
@@ -139,6 +62,7 @@ function animate(){
     });
 
     enemies.forEach((enemy, index) => {
+        //draw enemies on canvas
         enemy.draw();
         enemy.update();
 
@@ -148,7 +72,11 @@ function animate(){
         if(dist - player.radius - enemy.radius < 0){
             gsap.to('.main-container', {duration: 0.4, scale: 1});
             gsap.to('.score-div', {duration: 0.4, scale: 0});
+
+            gameover = true;
             document.querySelector('#ui-points').textContent = score;
+
+            clearInterval(spawn_enemies_interval);
             cancelAnimationFrame(animationId);
         }
 
@@ -167,13 +95,11 @@ function animate(){
                     );
                 }
 
-                if(enemy.radius - 10 > 5){
+                if(enemy.radius - 10 > 5){  
                     //increase score
-                    score += 100;
-                    scoreEl.textContent = score;
-                    gsap.fromTo(scoreEl, {opacity: 0} , {duration: 0.3, opacity:1});
+                    update_score(100);
 
-                    gsap.to(enemy, {
+                    gsap.to(enemy, {    //shrink down the enemy if the radius is greater than 5
                         radius: enemy.radius - 10
                     })
                     setTimeout(() => {
@@ -182,9 +108,7 @@ function animate(){
 
                 }else{
                     //increase score
-                    score += 250;
-                    scoreEl.textContent = score;
-                    gsap.fromTo(scoreEl, {opacity: 0} , {duration: 0.3, opacity:1});
+                    update_score(250);
 
                     setTimeout(() => {
                         enemies.splice(index, 1);
@@ -196,20 +120,20 @@ function animate(){
     });
 }
 
-window.addEventListener('click', (e) => {
-    let angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
-    let velocity = {
-        x: Math.cos(angle) * 5,
-        y: Math.sin(angle) * 5
-    }
-    projectiles.push(new Projectile(player.x, player.y, 5, 'white', velocity))
-});
-
-
 startBtn.addEventListener('click', ()=> {
     gsap.to('.main-container', {duration: 0.4, scale: 0});
     gsap.to('.score-div', {duration: 0.4, scale: 1});
+    gameover = false;
+
     init();
     animate();
-    spawnEnemies();
+
+    Enemy.spawnEnemies();
+
 })
+
+window.addEventListener('keypress', (e) => {
+    player.move(e.key);
+});
+
+window.addEventListener('click', Projectile.add.bind(event));
